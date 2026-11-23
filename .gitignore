@@ -1,0 +1,54 @@
+# Python environments and generated cache
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.wind-corridor-native/
+.pytest_cache/
+
+# Downloaded data, simulation results and incomplete files
+/data/
+/inputs/
+/downloads/
+/cache/
+/.cache/
+/wind-results/
+/results/
+/outputs/
+*.tif
+*.tiff
+*.aux.xml
+*.part
+*.part.*
+*.tmp
+*.log
+*.zip
+
+# Private scientific implementation and build/debug artifacts
+/wind-engine-private/
+/src/
+/vendor/
+/baseline/
+/tests/
+/build/
+/artifacts/
+*.cpp
+*.cc
+*.c
+*.h
+*.hpp
+*.pdb
+*.obj
+*.ilk
+wind-engine-verify.exe
+
+# Credentials and local editor settings
+.env
+.env.*
+*.env
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Production bin/, DLLs, licenses and scripts/assets/world_grid.* are required.
