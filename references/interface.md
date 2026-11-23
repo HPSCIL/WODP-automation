@@ -48,5 +48,7 @@ corridor_threshold_N.tif（可选）及result.json。二值图中0/1均有效，
 自动取数范围、建筑源、缓存、输出目录由Python任务层管理；地理数据准备后仍使用上述原生JSON接口。
 自动层的city/bbox/cache_dir等不是原生引擎配置键，不能直接写入原生job.json。
 恢复：`python scripts/run_wind.py --resume --out <原任务目录>`。
+推荐使用带环境检查的启动入口：`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start.ps1`，后接相同模拟参数。
+仅检查：PowerShell入口的`-CheckOnly`或Python入口`python scripts/start.py --check-env`。通过返回0，未就绪返回2；仅检查不会安装依赖、下载数据或模拟。
 自动任务根目录含task_state.json、data_sources.json、boundary.geojson、引擎日志、job-N.json和result_pointer.json。
 原生成果位于run-N子目录，失败尝试保留供诊断，新尝试不会把不完整输出当作成功。

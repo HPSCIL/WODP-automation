@@ -1,5 +1,5 @@
 {
-  "package_version": "1.1.1",
+  "package_version": "1.1.2",
   "engine_version": "1.1.0",
   "files": {
     "bin/gdal/concrt140.dll": "2405355f0a58067b258f8df33c327e3a3d716eaac5a3a5aebb757842d85bd376",
@@ -257,7 +257,7 @@
     "bin/wind-engine.exe": "ba03736d4aca24fbd5e6806eb7f46eecbeb4c3d1e98f471ffdb15381bc8e4d8d",
     "references/data-sources.md": "07f1fbfb58e6b329305b0d0cdfb5b350e6bcbe7bb51753e869fcc8fb9774581a",
     "references/FABDEM-LICENSE.txt": "047d2259741a3ebb30d8c8a43d4ba79b5b229a069acd1d2bea49f22b297d8e98",
-    "references/interface.md": "e80bd2113a6016ef8248a9edccb58e140a1c705b24be971f28a0dd9b69d56b28",
+    "references/interface.md": "48e92e739793c94ec133a81d826f07f220ea9db727a45153e80897b4b419d557",
     "requirements.txt": "a78bff3f0b7a9045a3eeed9fb93a43d2f7e4d720dbed432f4ef89198b4c906f6",
     "scripts/assets/world_grid.cpg": "3ad3031f5503a4404af825262ee8232cc04d4ea6683d42c5dd0a2f2a27ac9824",
     "scripts/assets/world_grid.dbf": "9d9bda005f41909e911f222c356faeb538acccace84520c3dbd6b169d1127381",
@@ -265,6 +265,7 @@
     "scripts/assets/world_grid.shp": "a0ffabed16916d1cae8378e112dcc5b0d119588501a3c750119729f86c682df0",
     "scripts/assets/world_grid.shx": "510616e0e2c42fd62a768e86e45d42baba9891226099489ec063cb08fd5752bb",
     "scripts/auto_pipeline.py": "d0e25d355b879705ab21db807bd235a7b256323fdd1d2e5c07857257750af306",
+    "scripts/check_environment.py": "6d65ed1554d45f2e5cb631e9003247506fcc46135aff3fd5410ffafff2d3a6a4",
     "scripts/prepare_data.py": "5c334d73dac87ded557b1d38781054c057ba6a9176a0110d1f10815a66081246",
     "scripts/render_report.py": "2232d7841d65df57f59c6d54effbeb1c84601386315218e4913d76b1e89e07a8",
     "scripts/run_wind.py": "00f141173705b65198c2d55eea73fbca02f89fbbedb26e6ade95420f1ddebfbd",
@@ -275,8 +276,9 @@
     "scripts/sources/range_cache.py": "39dbc20624839ae3d2bc42ca6d9e9328d68a0d9b88e705f24522c3ad03619c69",
     "scripts/sources/rasters.py": "a0b46e5a4564c51fca8917fdc9d513e816900d02f07d0aa0a9823ed6890bf20c",
     "scripts/sources/terrain.py": "a7afe44c7c67718a91be58ae54d8804ed63b7c24050504639abf4ab7462ab44c",
-    "scripts/start.py": "f3809652e45b7de47e919e4c480d6e675a4b8c02771e05a29b07009537dcbc48",
-    "SKILL.md": "0cbba73821106ca7871d8c547638aea151c392c5345d17991bab843b067801aa",
+    "scripts/start.ps1": "2b6f451c22cf42985d0e86d9bea86bd6f721fadf401fc13e82fbf33e88f93208",
+    "scripts/start.py": "55ec606a4173262ab63c4c040307231783e640262139665e0695893bacc85dcc",
+    "SKILL.md": "0d0e627a4ae2ce51722a860c6faebcebab78d83c5aed04124cd52d5dd4a14a11",
     "THIRD_PARTY_NOTICES.md": "62742107a358b30626919c88f74ade4a26d804e49011fa96362321c422c2502c"
   }
 }

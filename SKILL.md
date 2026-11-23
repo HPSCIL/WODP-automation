@@ -6,16 +6,24 @@ description: 根据一句话自动获取中国城市行政边界、去建筑树�
 # 城市风环境通风廊道
 
 用户给出城市、风来向、风速和分辨率后，直接开始，不再要求用户准备数据或逐项确认默认参数。
+使用PowerShell入口自动执行环境检查。缺少系统/Python、运行文件损坏或目录不可写时，展示缺项和处理方法后停止；不要跳过检查继续模拟。
+首次使用可先只检查环境，不安装依赖、不下载数据、不模拟：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File "<技能目录>/scripts/start.ps1" -CheckOnly
+```
+
+未安装Python时，此入口会提示安装64位Python 3.12并加入PATH。缺少Python依赖时，正常启动会先提示并按原流程在专用环境准备依赖；仅检查模式返回非零退出码。
 例如「我希望模拟整个武汉市的东风，风速在3m/s，分辨率是30米」：
 
 ```powershell
-python <技能目录>/scripts/start.py --describe "我希望模拟整个武汉市的东风，风速在3m/s，分辨率是30米"
+powershell -NoProfile -ExecutionPolicy Bypass -File "<技能目录>/scripts/start.ps1" --describe "我希望模拟整个武汉市的东风，风速在3m/s，分辨率是30米"
 ```
 
 也可由宿主AI理解口语后直接映射成参数，以支持描述解析器未涵盖的自然表达：
 
 ```powershell
-python <技能目录>/scripts/start.py --city 武汉市 --wind-from E --wind-speed 3 --res 30
+powershell -NoProfile -ExecutionPolicy Bypass -File "<技能目录>/scripts/start.ps1" --city 武汉市 --wind-from E --wind-speed 3 --res 30
 ```
 
 路径以技能所在目录解析脚本位置。默认40轮、seed 42、1000米外围缓冲；分辨率缺省30米。
@@ -44,7 +52,7 @@ python <技能目录>/scripts/start.py --city 武汉市 --wind-from E --wind-spe
 原始大文件下载支持断点续传；窗口读取完成的地形/建筑分片独立缓存，失败后不重做已完成分片。
 
 ```powershell
-python <技能目录>/scripts/run_wind.py --resume --out <原任务目录>
+powershell -NoProfile -ExecutionPolicy Bypass -File "<技能目录>/scripts/start.ps1" --resume --out "<原任务目录>"
 ```
 
 恢复时读取保存的描述参数，已完成且哈希通过的计算直接复用。修改研究参数需新建任务。
@@ -60,7 +68,7 @@ python <技能目录>/scripts/run_wind.py --resume --out <原任务目录>
 本地数据模式保留：
 
 ```powershell
-python <技能目录>/scripts/run_wind.py --dem <裸地DTM.tif> --buildings <相对高度.tif> --wind-from N --out <新输出目录>
+powershell -NoProfile -ExecutionPolicy Bypass -File "<技能目录>/scripts/start.ps1" --dem "<裸地DTM.tif>" --buildings "<相对高度.tif>" --wind-from N --out "<新输出目录>"
 ```
 
 需要通用重投影/网格对齐时运行scripts/prepare_data.py，参数见 [references/interface.md](references/interface.md)。

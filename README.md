@@ -2,7 +2,7 @@
 
 根据一句话描述，自动获取研究区边界、地形和建筑数据，调用本地 C++ 引擎，生成通风廊道筛选图、GeoTIFF 和报告。
 
-技能包版本 **1.1.1**，计算引擎版本 **1.1.0**。技能入口为 [SKILL.md](SKILL.md)。
+技能包版本 **1.1.2**，计算引擎版本 **1.1.0**。技能入口为 [SKILL.md](SKILL.md)。
 
 ## 运行条件
 
@@ -15,16 +15,26 @@
 
 ## 快速开始
 
-在仓库根目录打开 PowerShell，运行：
+在仓库根目录打开 PowerShell，首次使用建议先仅检查环境：
 
 ```powershell
-python -X utf8 scripts/start.py --describe "我希望模拟整个武汉市的东风，风速在3m/s，分辨率是30米"
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start.ps1 -CheckOnly
+```
+
+即使电脑没有 Python，该入口也会给出安装 64 位 Python 3.12、加入 PATH 的提示。检查会核对 Windows x64、Python 版本和位数、依赖版本及实际导入、引擎启动、GIS 动态库加载、运行文件完整性、输出/缓存/临时目录写入权限和代理配置。
+
+每个缺项都会附处理方法。仅检查模式不安装依赖、不下载数据、不启动模拟；环境未就绪时返回退出码 `2`，通过时返回 `0`。此检查不会实际请求外部数据网站，网络可达性在取数时验证。
+
+正式运行时也会自动先检查。基础环境不符会停止；只有 Python 依赖缺失时，会先提示，再按原流程在专用环境安装并复查。运行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start.ps1 --describe "我希望模拟整个武汉市的东风，风速在3m/s，分辨率是30米"
 ```
 
 武昌区 10 米网格示例：
 
 ```powershell
-python -X utf8 scripts/start.py --city "武汉市武昌区" --wind-from E --wind-speed 3 --res 10
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start.ps1 --city "武汉市武昌区" --wind-from E --wind-speed 3 --res 10
 ```
 
 `E` 表示风从东边吹来。默认模拟 40 轮、随机种子 42、外围缓冲 1000 米；结果统计限定在行政区内。
@@ -34,10 +44,11 @@ python -X utf8 scripts/start.py --city "武汉市武昌区" --wind-from E --wind
 下载缓存默认位于用户目录的 `.wind-corridor-native/cache`。失败后，使用终端中的原任务目录恢复：
 
 ```powershell
-python -X utf8 scripts/start.py --resume --out "原任务目录的完整路径"
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start.ps1 --resume --out "原任务目录的完整路径"
 ```
 
 支持本地 DTM、建筑高度栅格及更多参数，见 [接口说明](references/interface.md) 和 [技能说明](SKILL.md)。
+已有可用 Python 时，也可运行 `python -X utf8 scripts/start.py --check-env` 或通过同一入口传入模拟参数。
 
 ## 网络与代理
 
