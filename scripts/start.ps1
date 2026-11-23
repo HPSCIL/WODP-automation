@@ -14,8 +14,8 @@ if (-not $python) {
 }
 if (-not $python) {
     Write-Host '环境检查失败：未找到可用的 Python。'
-    Write-Host '请安装 64 位 Python 3.12，安装时勾选 Add Python to PATH，然后重新打开终端重试。'
-    Write-Host '本技能无法在未安装 Python 时启动；无需安装 C++ 编译器。'
+    Write-Host '请自行准备 64 位 Python 3.12 或更新版本，激活相应环境或确认 PATH 中的 Python 命令可用，再重试。'
+    Write-Host '安装方式由您自行决定；本技能只检查和提示，不安装软件或创建环境。'
     exit 2
 }
 $arguments = @('-X','utf8',$launcher)
@@ -25,7 +25,7 @@ try {
     & $python.Source @prefix @arguments
     $code = $LASTEXITCODE
     if ($code -ne 0 -and $prefix.Count -gt 0) {
-        Write-Host '如 Python 启动器提示找不到 3.12，请安装 64 位 Python 3.12 并重新打开终端。'
+        Write-Host '如启动器提示找不到 3.12，请自行准备兼容环境，并使用所选环境中的 Python 调用 scripts/start.py。'
     }
     exit $code
 } catch {

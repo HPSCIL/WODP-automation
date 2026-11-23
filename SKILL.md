@@ -13,7 +13,7 @@ description: 根据一句话自动获取中国城市行政边界、去建筑树�
 powershell -NoProfile -ExecutionPolicy Bypass -File "<技能目录>/scripts/start.ps1" -CheckOnly
 ```
 
-未安装Python时，此入口会提示安装64位Python 3.12并加入PATH。缺少Python依赖时，正常启动会先提示并按原流程在专用环境准备依赖；仅检查模式返回非零退出码。
+未安装Python时，此入口会提示需要64位Python 3.12及可用命令。任何运行环境缺项均提示后停止，返回非零退出码；由用户自行决定安装方式。只检查用户选定的Python环境，不安装软件、创建虚拟环境、切换镜像或自动切换到其他解释器。宿主AI也应仅说明缺项，不代替用户安装。
 例如「我希望模拟整个武汉市的东风，风速在3m/s，分辨率是30米」：
 
 ```powershell
@@ -27,8 +27,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<技能目录>/scripts/star
 ```
 
 路径以技能所在目录解析脚本位置。默认40轮、seed 42、1000米外围缓冲；分辨率缺省30米。
-需要Windows x64及Python 3.12+；start.py在依赖缺失时自动创建用户级专用虚拟环境安装固定版本requirements，不修改现有全局环境。
-默认PyPI连接失败时重试清华大学HTTPS镜像；可用WIND_CORRIDOR_PIP_INDEX指定索引。已有专用环境会直接复用。
+需要Windows x64及Python 3.12+；依赖要求见requirements.txt。用户可按自己的方式配置环境，再激活该环境或使用其Python解释器调用scripts/start.py。
 未指定输出目录时自动创建当前工作目录下wind-results内的新任务目录。
 城市或风来向确实不明确时才追问；「主城区」需要明确的区县或bbox，不能擅自当作整个城市。
 「东风」是从东边来，参数E；区县应包含所属市名，例如武汉市江岸区。
@@ -59,7 +58,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<技能目录>/scripts/star
 任务失败应说明失败阶段及恢复命令，不能把旧成果当成本次成功。
 自动模式还支持`--bbox minlon,minlat,maxlon,maxlat --bbox-label 名称`、`--buffer`、`--building-source auto|3dglobfp|cnbh`、`--proxy`。
 代理按`--proxy`、`WIND_CORRIDOR_PROXY`、协议环境变量HTTP_PROXY/HTTPS_PROXY（或ALL_PROXY）、Windows已启用的手动系统代理的顺序选择。
-仅设置NO_PROXY不会使Windows系统代理失效；尊重目标站点的代理绕过设置，本机127.0.0.1/localhost服务始终直连。首次pip依赖安装也继承识别结果。
+仅设置NO_PROXY不会使Windows系统代理失效；尊重目标站点的代理绕过设置，本机127.0.0.1/localhost服务始终直连。
 自动识别支持Windows中Clash等配置的HTTP/HTTPS代理，不猜测固定端口；PAC/WPAD和SOCKS-only需提供HTTP代理地址。
 不要将含凭据的代理地址写入报告。既有任务会复用已校验的来源缓存；要验证首选建筑源恢复，使用新任务并指定`--building-source 3dglobfp`。
 

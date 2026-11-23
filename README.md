@@ -2,12 +2,12 @@
 
 根据一句话描述，自动获取研究区边界、地形和建筑数据，调用本地 C++ 引擎，生成通风廊道筛选图、GeoTIFF 和报告。
 
-技能包版本 **1.1.2**，计算引擎版本 **1.1.0**。技能入口为 [SKILL.md](SKILL.md)。
+技能包版本 **1.1.3**，计算引擎版本 **1.1.0**。技能入口为 [SKILL.md](SKILL.md)。
 
 ## 运行条件
 
 - Windows x64，推荐使用已验证的 **64 位 Python 3.12**，且 `python` 命令可用。
-- 首次启动需要联网安装 Python 依赖；程序会创建用户目录下的 `.wind-corridor-native/venv`，后续复用。
+- 运行所需 Python 依赖及版本见 `requirements.txt`。安装方式和环境管理工具由用户自行决定。
 - 自动取数需要访问 DataV、Bristol、Figshare 或 Zenodo。需要代理时，在自己的电脑上启用系统代理。
 - 计算引擎、GIS 动态库、运行资源和第三方许可已包含在 `bin/` 中，无需编译 C++ 或准备原开发项目。
 
@@ -21,11 +21,11 @@
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start.ps1 -CheckOnly
 ```
 
-即使电脑没有 Python，该入口也会给出安装 64 位 Python 3.12、加入 PATH 的提示。检查会核对 Windows x64、Python 版本和位数、依赖版本及实际导入、引擎启动、GIS 动态库加载、运行文件完整性、输出/缓存/临时目录写入权限和代理配置。
+即使电脑没有 Python，该入口也会提示需要 64 位 Python 3.12 及可用命令，由用户自行选择如何准备环境。检查会核对 Windows x64、Python 版本和位数、依赖版本及实际导入、引擎启动、GIS 动态库加载、运行文件完整性、输出/缓存/临时目录写入权限和代理配置。
 
 每个缺项都会附处理方法。仅检查模式不安装依赖、不下载数据、不启动模拟；环境未就绪时返回退出码 `2`，通过时返回 `0`。此检查不会实际请求外部数据网站，网络可达性在取数时验证。
 
-正式运行时也会自动先检查。基础环境不符会停止；只有 Python 依赖缺失时，会先提示，再按原流程在专用环境安装并复查。运行：
+正式运行时也会自动先检查。任何环境缺项都会给出提示并停止；技能不会安装软件或依赖、创建虚拟环境、切换软件包镜像，也不会自动改用其他 Python 环境。请自行准备好环境，再激活该环境或使用选定的 Python 解释器启动。运行：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start.ps1 --describe "我希望模拟整个武汉市的东风，风速在3m/s，分辨率是30米"
@@ -48,15 +48,15 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start.ps1 --resume
 ```
 
 支持本地 DTM、建筑高度栅格及更多参数，见 [接口说明](references/interface.md) 和 [技能说明](SKILL.md)。
-已有可用 Python 时，也可运行 `python -X utf8 scripts/start.py --check-env` 或通过同一入口传入模拟参数。
+已有可用 Python 时，也可运行 `python -X utf8 scripts/start.py --check-env` 或通过同一入口传入模拟参数。检查和任务均使用用户选定的同一 Python 环境，包括其用户级安装和 `PYTHONPATH` 配置。
 
 ## 网络与代理
 
 代理按以下优先级选择：`--proxy` → `WIND_CORRIDOR_PROXY` → `HTTP_PROXY` / `HTTPS_PROXY`（或 `ALL_PROXY`）→ 已启用的 Windows 手动系统代理。
 
-支持读取 Clash 等工具写入的系统代理配置，不绑定某台电脑或某个固定端口。`NO_PROXY` 只控制绕过目标，不会单独遮蔽系统代理地址；本机缓存服务始终直连。首次依赖安装也继承识别结果。
+支持读取 Clash 等工具写入的系统代理配置，不绑定某台电脑或某个固定端口。`NO_PROXY` 只控制绕过目标，不会单独遮蔽系统代理地址；本机缓存服务始终直连。
 
-PAC/WPAD 和仅提供 SOCKS 的配置需要另行提供 HTTP 或混合代理地址。默认 PyPI 安装失败时会重试清华大学 HTTPS 镜像，也可用 `WIND_CORRIDOR_PIP_INDEX` 指定软件包索引。不要将代理账号、密码或个人环境配置提交到仓库。
+PAC/WPAD 和仅提供 SOCKS 的配置需要另行提供 HTTP 或混合代理地址。此处的代理仅用于运行时数据获取；依赖安装及其网络配置由用户自行安排。不要将代理账号、密码或个人环境配置提交到仓库。
 
 ## 数据来源与适用范围
 
