@@ -12,19 +12,27 @@ def main(argv=None):
     if '--help' in argv or '-h' in argv:
         print('环境检查：python scripts/start.py --check-env（只检查，不安装、不模拟）',flush=True)
         return subprocess.run([sys.executable,'-X','utf8',str(ROOT/'scripts/run_wind.py'),'--help']).returncode
-    parser=argparse.ArgumentParser(add_help=False)
+    parser=argparse.ArgumentParser(add_help=False,allow_abbrev=False)
     parser.add_argument('--check-env','--check-only',action='store_true',dest='check_only')
     parser.add_argument('--out',type=Path);parser.add_argument('--cache-dir');parser.add_argument('--config',type=Path);parser.add_argument('--proxy')
+    parser.add_argument('--buildings',type=Path);parser.add_argument('--resume',action='store_true')
     options,_=parser.parse_known_args(argv)
     output=options.out
-    if output is None and options.config:
+    building_path=options.buildings
+    if options.config:
         import json
         config=json.loads(options.config.read_text(encoding='utf-8-sig'))
         if not isinstance(config,dict):raise ValueError('配置文件必须为JSON对象。')
-        if config.get('output_dir'):output=options.config.resolve().parent/config['output_dir']
+        if output is None and config.get('output_dir'):output=options.config.resolve().parent/config['output_dir']
+        if building_path is None and config.get('buildings'):building_path=options.config.resolve().parent/config['buildings']
+    if options.resume and options.out and building_path is None:
+        import json
+        state=json.loads((options.out/'task_state.json').read_text(encoding='utf8'))
+        building_path=state.get('request',{}).get('local_buildings',{}).get('path')
     from check_environment import check_environment,print_report
     check_cache=not ('--dem' in argv or options.config)
-    report=check_environment(ROOT,output=output,cache=options.cache_dir,require_cache=check_cache,proxy=options.proxy)
+    vector=bool(building_path and Path(building_path).suffix.lower() in ('.shp','.gpkg','.geojson','.json'))
+    report=check_environment(ROOT,output=output,cache=options.cache_dir,require_cache=check_cache,proxy=options.proxy,vector=vector)
     print_report(report)
     if options.check_only:return 0 if report['ready'] else 2
     if not report['ready']:return 2

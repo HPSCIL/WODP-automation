@@ -2,7 +2,7 @@
 
 根据一句话描述，自动获取研究区边界、地形和建筑数据，调用本地 C++ 引擎，生成通风廊道筛选图、GeoTIFF 和报告。
 
-技能包版本 **1.1.3**，计算引擎版本 **1.1.0**。技能入口为 [SKILL.md](SKILL.md)。
+技能包版本 **1.2.0**，计算引擎版本 **1.1.0**。技能入口为 [SKILL.md](SKILL.md)。
 
 ## 运行条件
 
@@ -50,6 +50,24 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start.ps1 --resume
 支持本地 DTM、建筑高度栅格及更多参数，见 [接口说明](references/interface.md) 和 [技能说明](SKILL.md)。
 已有可用 Python 时，也可运行 `python -X utf8 scripts/start.py --check-env` 或通过同一入口传入模拟参数。检查和任务均使用用户选定的同一 Python 环境，包括其用户级安装和 `PYTHONPATH` 配置。
 
+## 本地建筑与混合模式
+
+本地建筑可使用SHP、GPKG、GeoJSON或高度栅格。矢量格式额外需要 `requirements-vector.txt` 中的 pyogrio 和 Shapely，由用户自行准备；普通栅格及纯在线模式不要求这些依赖。
+
+自动研究区、在线地形和本地建筑可组合，例如：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start.ps1 --city "武汉市武昌区" --buildings "D:\data\buildings.gpkg" --building-layer buildings --height-field height --height-unit m --confirm-building-coverage --wind-from E --wind-speed 3 --res 10
+```
+
+`--confirm-building-coverage`表示用户已确认建筑数据完整覆盖研究区及外围缓冲内全部建筑。矢量文件的外包矩形不能证明覆盖完整；未确认时只提示并停止。请先核实覆盖范围或缩小范围，再提供该参数。
+
+唯一明确的高度字段可自动识别；有多个候选时通过 `--height-field` 指定。楼层字段使用 `--height-unit floors --floor-height 用户确定的每层米数`，不会假设默认层高。GPKG有多个图层时需指定图层。高度缺失、坐标系缺失和几何无效时会停止，供用户修复。
+
+只有本地数据时，用 `--dem DTM.tif --buildings 建筑文件`，可配合 `--res` 和米制目标投影 `--crs` 自动对齐。准备结果保存在输出目录旁的 `<任务名>.inputs`，成果中的 `preparation.json` 记录源文件和字段处理；混合模式在 `data_sources.json` 中记录。源文件修改后需新建任务，恢复旧任务不会混用修改后的数据。
+
+用户明确不考虑建筑时，可使用 `--city 武汉市武昌区 --terrain-only` 或 `--dem DTM.tif --terrain-only`。默认不会把缺少建筑或下载失败当作纯地形。已有模型计算面直通仍未开放。
+
 ## 网络与代理
 
 代理按以下优先级选择：`--proxy` → `WIND_CORRIDOR_PROXY` → `HTTP_PROXY` / `HTTPS_PROXY`（或 `ALL_PROXY`）→ 已启用的 Windows 手动系统代理。
@@ -75,6 +93,8 @@ PAC/WPAD 和仅提供 SOCKS 的配置需要另行提供 HTTP 或混合代理地�
 ## 验证状态
 
 已在本机 Windows / Python 3.12 环境跑通武汉全市 30 米和武昌区 10 米任务，两次建筑数据均使用 CNBH。代理修复后，已验证自动代理下的 Figshare 索引与建筑 ZIP 文件头读取，以及代理路由、GDAL、任务恢复和技能闭环回归。
+
+v1.2.0使用合成GIS输入完成30项本地建筑验证，覆盖三种矢量格式、坐标转换、字段歧义、楼层换算、几何检查、混合模式及恢复；同一数据的矢量输入和预栅格化输入计算结果逐像元一致。发布目录入口也已完成楼层矢量的出图/报告验证；这些合成输入不代表城市实测数据。
 
 尚未完成全新电脑的安装验收，也未完成首选 3D-GloBFP 的完整分片下载和模拟验收。网络可用性与数据覆盖仍会影响首次使用。
 

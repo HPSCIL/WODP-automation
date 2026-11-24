@@ -57,6 +57,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<技能目录>/scripts/star
 恢复时读取保存的描述参数，已完成且哈希通过的计算直接复用。修改研究参数需新建任务。
 任务失败应说明失败阶段及恢复命令，不能把旧成果当成本次成功。
 自动模式还支持`--bbox minlon,minlat,maxlon,maxlat --bbox-label 名称`、`--buffer`、`--building-source auto|3dglobfp|cnbh`、`--proxy`。
+用户提供本地建筑时可用`--city/--bbox --buildings`组合：边界和FABDEM地形仍自动获取，建筑完全使用本地数据，不再下载在线建筑。
+用户明确说“不考虑建筑”时，将其映射为`--terrain-only`，自动范围和本地DTM模式均可使用；缺少建筑文件不代表用户已选择纯地形。
 代理按`--proxy`、`WIND_CORRIDOR_PROXY`、协议环境变量HTTP_PROXY/HTTPS_PROXY（或ALL_PROXY）、Windows已启用的手动系统代理的顺序选择。
 仅设置NO_PROXY不会使Windows系统代理失效；尊重目标站点的代理绕过设置，本机127.0.0.1/localhost服务始终直连。
 自动识别支持Windows中Clash等配置的HTTP/HTTPS代理，不猜测固定端口；PAC/WPAD和SOCKS-only需提供HTTP代理地址。
@@ -72,6 +74,20 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<技能目录>/scripts/star
 
 需要通用重投影/网格对齐时运行scripts/prepare_data.py，参数见 [references/interface.md](references/interface.md)。
 没有建筑的场景仅在用户明确要求时使用`--terrain-only`。
+
+本地建筑支持SHP、GPKG、GeoJSON及米制相对高度栅格。矢量输入会自动准备标准网格，不需用户先手动栅格化；本地模式可用`--res`和`--crs`控制对齐。
+矢量专用依赖列于requirements-vector.txt，只检查提示，不自动安装。用`start.ps1 -CheckOnly --buildings <文件>`检查对应依赖。
+唯一明确的height/height_m/楼高或floors/层数等字段可自动识别；多个候选、无明确单位时提示用户用`--height-field`、`--height-unit m|floors`指定。楼层换算必须提供用户确定的`--floor-height`，不默认假设层高。
+GPKG多图层时使用`--building-layer`。高度为相对地面的米数，不能使用屋顶绝对高程；缺失/非正高度、未知CRS、无效几何会停止，不自动填零或回填中位数。
+矢量本身不能证明研究区没有漏楼。只有用户已确认覆盖整个计算范围及外围缓冲内全部建筑时，才传`--confirm-building-coverage`；覆盖不明时先提示用户核实或缩小范围，宿主AI不得擅自声明完整。无建筑区域置零基于这项声明，不能凭建筑外包矩形证明覆盖。
+本地DTM+矢量示例：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File "<技能目录>/scripts/start.ps1" --dem "<DTM.tif>" --buildings "<建筑.gpkg>" --building-layer buildings --height-field floors --height-unit floors --floor-height 3.2 --confirm-building-coverage --res 10 --wind-from E --wind-speed 3 --out "<新输出目录>"
+```
+
+示例中的3.2米仅演示参数，实际层高由用户确定。本地准备栅格和源文件记录保存在输出目录旁的`<任务名>.inputs`，成果内preparation.json记录图层、字段、单位和各配套文件SHA-256；混合模式将这些信息写入data_sources.json。
+仍不接受`--dsm`计算面直通，不在公开脚本中实现核心算法。
 
 自动任务目录内task_state.json记录阶段，result_pointer.json指出成果子目录。
 成果包含GeoTIFF、PNG、report.md/result.json，data_sources.json保存来源、年代、降级原因及覆盖信息。

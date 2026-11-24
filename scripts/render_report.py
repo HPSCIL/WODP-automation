@@ -25,6 +25,15 @@ def render(output,make_plots=True):
     for c in result['corridors']:
         lines.append(f"| {c['file']} | {c['threshold']:.6g} | {c['area_km2']:.6f} | {c['ratio']:.2%} |")
     lines.extend(['','面积与占比分母仅使用有效分析区；若未提供analysis_mask，分析区为输入网格的有效覆盖。'])
+    preparation_path=output/'preparation.json'
+    if preparation_path.is_file():
+        preparation=json.loads(preparation_path.read_text(encoding='utf8'))
+        building=preparation.get('building_preparation')
+        if building:
+            lines.extend(['','## 本地建筑数据准备','',f"原始建筑：`{building['source']['path']}`；源文件SHA-256及准备规则见preparation.json。"])
+            if building.get('height_field'):
+                lines.append(f"图层：{building['layer']}；字段：{building['height_field']}；单位：{building['height_unit']}；转换为米的系数：{building['height_scale_to_m']:g}。")
+            lines.extend(['- '+w for w in building.get('warnings',[])])
     source_path=output/'data_sources.json'
     source_info=None
     if source_path.is_file():
@@ -37,6 +46,8 @@ def render(output,make_plots=True):
             if source.get('attribution'):lines.append('  '+source['attribution'])
             if source.get('citation'):lines.append('  '+source['citation'])
             if source.get('fallback_reason'):lines.append('  首选3D-GloBFP不可用，已自动降级；原因：'+source['fallback_reason'])
+            if source.get('height_field'):
+                lines.append(f"  图层：{source['layer']}；高度字段：{source['height_field']}；原单位：{source['height_unit']}；转换为米系数：{source['height_scale_to_m']:g}；完整覆盖由用户声明（含外围缓冲）。")
         lines.extend(['','数据覆盖和分片来源见data_sources.json；统计已使用行政边界掩膜，外部缓冲只参与模拟。'])
         lines.extend(['- '+w for w in source_info.get('warnings',[])])
     if result['warnings']:

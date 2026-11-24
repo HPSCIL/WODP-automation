@@ -12,8 +12,9 @@ import tempfile
 ROOT=Path(__file__).resolve().parents[1]
 DEPENDENCIES={'numpy':'numpy','rasterio':'rasterio','matplotlib':'matplotlib','pyshp':'shapefile'}
 
-def requirements_for(root):
-    return {line.split('==')[0].strip():line.split('==')[1].strip() for line in (Path(root)/'requirements.txt').read_text(encoding='utf8').splitlines() if '==' in line and not line.lstrip().startswith('#')}
+def requirements_for(root,vector=False):
+    files=['requirements.txt']+(['requirements-vector.txt'] if vector else [])
+    return {line.split('==')[0].strip():line.split('==')[1].strip() for name in files for line in (Path(root)/name).read_text(encoding='utf8').splitlines() if '==' in line and not line.lstrip().startswith('#')}
 
 def probe_dependencies(python,requirements,timeout=30):
     code="""import importlib,importlib.metadata,json,struct,sys
@@ -28,7 +29,10 @@ for package,module in json.loads(sys.argv[1]).items():
 print(json.dumps({'issues':issues,'version':list(sys.version_info[:3]),'bits':struct.calcsize('P')*8}))
 """
     try:
-        process=subprocess.run([str(python),'-c',code,json.dumps(DEPENDENCIES),json.dumps(requirements)],capture_output=True,text=True,encoding='utf8',errors='replace',timeout=timeout)
+        dependencies=dict(DEPENDENCIES)
+        for name in ['pyogrio','shapely']:
+            if name in requirements:dependencies[name]=name
+        process=subprocess.run([str(python),'-c',code,json.dumps(dependencies),json.dumps(requirements)],capture_output=True,text=True,encoding='utf8',errors='replace',timeout=timeout)
         if process.returncode:return {'issues':['解释器或依赖导入失败（退出码'+str(process.returncode)+'）']}
         result=json.loads(process.stdout)
         if result['version'][:2]<[3,12] or result['bits']!=64:result['issues'].append('当前解释器需要64位Python 3.12+')
@@ -45,7 +49,7 @@ def writable_ancestor(path):
         return True,str(candidate)
     except OSError:return False,str(candidate)
 
-def check_environment(root=ROOT,output=None,cache=None,require_cache=True,proxy=None):
+def check_environment(root=ROOT,output=None,cache=None,require_cache=True,proxy=None,vector=False):
     root=Path(root);checks=[]
     report={'checks':checks,'python':None,'needs_dependencies':False}
     def add(name,status,detail,action=''):checks.append(dict(name=name,status=status,detail=detail,action=action))
@@ -55,6 +59,7 @@ def check_environment(root=ROOT,output=None,cache=None,require_cache=True,proxy=
     add('Python','ok' if python_ok else 'error',platform.python_version()+' / '+str(struct.calcsize('P')*8)+'位','请自行准备或切换到64位Python 3.12或更新版本，并确保当前命令使用您选择的环境。' if not python_ok else '')
     required=['requirements.txt','scripts/run_wind.py','scripts/render_report.py','scripts/auto_pipeline.py','scripts/sources/network.py',
               'bin/wind-engine.exe','bin/runtime-manifest.json','bin/proj_data/proj.db']
+    if vector:required.append('requirements-vector.txt')
     absent=[name for name in required if not (root/name).is_file()]
     # Include every bundled DLL/resource so a partial clone fails before computation.
     runtime={};damaged=[]
@@ -98,7 +103,7 @@ def check_environment(root=ROOT,output=None,cache=None,require_cache=True,proxy=
         add(name,'ok' if ok else 'error',str(path.absolute()) if ok else '不可写：'+str(path),action if not ok else '')
     if python_ok:
         try:
-            requirements=requirements_for(root)
+            requirements=requirements_for(root,vector)
         except OSError:requirements={}
         current=probe_dependencies(sys.executable,requirements)
         chosen=sys.executable if not current['issues'] else None
@@ -108,7 +113,8 @@ def check_environment(root=ROOT,output=None,cache=None,require_cache=True,proxy=
         else:
             issues=current['issues']
             report['needs_dependencies']=True
-            add('Python依赖','error','；'.join(issues),'请自行选择安装方式，在要运行本技能的Python环境中准备requirements.txt所列依赖，然后重新检查；技能只提示，不执行安装或创建环境。')
+            requirement_names='requirements.txt和requirements-vector.txt' if vector else 'requirements.txt'
+            add('Python依赖','error','；'.join(issues),'请自行选择安装方式，在要运行本技能的Python环境中准备'+requirement_names+'所列依赖，然后重新检查；技能只提示，不执行安装或创建环境。')
     if require_cache and (root/'scripts/sources/network.py').is_file():
         try:
             from sources.network import proxy_settings

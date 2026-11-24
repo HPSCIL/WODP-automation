@@ -22,6 +22,9 @@ def main(argv=None):
     ap.add_argument('--proxy')
     ap.add_argument('--resume',action='store_true')
     ap.add_argument('--dem',type=Path)
+    ap.add_argument('--crs',help='本地数据准备的目标米制投影')
+    ap.add_argument('--building-layer');ap.add_argument('--height-field');ap.add_argument('--height-unit',choices=['m','floors'])
+    ap.add_argument('--floor-height',type=float);ap.add_argument('--confirm-building-coverage',action='store_true',default=None)
     modes=ap.add_mutually_exclusive_group()
     modes.add_argument('--buildings',type=Path)
     modes.add_argument('--terrain-only',action='store_true')
@@ -37,11 +40,14 @@ def main(argv=None):
     ap.add_argument('--no-plot',action='store_true')
     args=ap.parse_args(argv)
     if args.describe or args.city or args.bbox or (args.resume and args.out):
-        if args.config or args.dem or args.buildings or args.terrain_only or args.mask:
-            ap.error('自动取数模式与本地输入/配置模式不能混用')
+        if args.config or args.dem or args.mask or args.crs:
+            ap.error('自动范围可搭配--buildings；本地DEM/配置/掩膜/目标CRS请使用本地模式')
+        if args.building_source and (args.buildings or args.terrain_only):ap.error('本地建筑/纯地形与在线建筑源不能同时指定')
         from auto_pipeline import run_auto
         return run_auto(args)
     if args.resume:ap.error('--resume用于自动取数任务，请提供原始描述或--city/--bbox')
+    vector_options=any(v is not None for v in [args.building_layer,args.height_field,args.height_unit,args.floor_height,args.confirm_building_coverage])
+    if vector_options and not args.buildings:ap.error('建筑字段/单位参数需要同时提供--buildings')
     cfg={};base=Path.cwd()
     if args.config:
         base=args.config.resolve().parent
@@ -64,12 +70,29 @@ def main(argv=None):
         ap.error('Provide --dem, --wind-from and --out (or a complete --config)')
     executable=ROOT/'bin/wind-engine.exe'
     if not executable.is_file():ap.error('Bundled native engine is missing')
+    preparation=None
+    from local_buildings import is_vector
+    local_vector=cfg.get('buildings') and is_vector(cfg['buildings'])
+    if args.crs or (args.res_m is not None) or local_vector:
+        if cfg.get('analysis_mask'):ap.error('自动本地对齐暂不重采样分析掩膜；请先prepare_data再传入同网格--mask')
+        if Path(cfg['output_dir']).exists():ap.error('输出目录已存在，请选择新目录')
+        from prepare_data import prepare
+        prepared=Path(cfg['output_dir']).with_name(Path(cfg['output_dir']).name+'.inputs')
+        prepare(cfg['dem'],cfg.get('buildings'),prepared,args.res_m,args.crs,building_layer=args.building_layer,
+                height_field=args.height_field,height_unit=args.height_unit,floor_height=args.floor_height,
+                confirm_building_coverage=bool(args.confirm_building_coverage))
+        cfg['dem']=str(prepared/'dem.tif')
+        if cfg.get('buildings'):cfg['buildings']=str(prepared/'buildings.tif')
+        preparation=prepared/'preparation.json'
+    elif vector_options:ap.error('高度字段和图层选项仅适用于矢量；高度栅格直接使用米制相对高度')
     with tempfile.TemporaryDirectory(prefix='wind_job_') as task:
         job=Path(task)/'job.json';job.write_text(json.dumps(cfg,ensure_ascii=False,indent=2),encoding='utf8')
         process=subprocess.run([str(executable),'run','--config',str(job)])
     if process.returncode:return process.returncode
     output=Path(cfg['output_dir'])
     (output/'job.json').write_text(json.dumps(cfg,ensure_ascii=False,indent=2),encoding='utf8')
+    if preparation:
+        __import__('shutil').copy2(preparation,output/'preparation.json')
     from render_report import render
     render(output,make_plots=not args.no_plot)
     print('成果目录：'+str(output))

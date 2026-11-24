@@ -19,6 +19,7 @@ from rasterio.warp import transform_bounds,transform_geom
 from sources import places,terrain,buildings
 from sources.network import atomic_json,digest
 from sources.rasters import cache_valid,save
+from local_buildings import on_grid,source_identity
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -95,8 +96,12 @@ def acquire_inputs(request,cache_dir,proxy=None,log=print):
     else:
         place=places.resolve(request['city'],str(cache_dir/'boundaries'),log=log,proxy=proxy)
     grid=make_grid(place['bbox_wgs84'],request['res_m'],request['buffer_m'])
+    local=request.get('local_buildings')
+    source_key=request['building_source'] if not local else {'local':local,'options':request.get('building_options',{})}
+    if local and source_identity(local['path'])!=local:raise ValueError('本地建筑源与保存的哈希不一致，请为修改后的数据创建新任务')
+    if request.get('terrain_only'):source_key='terrain-only'
     key=fingerprint({'cache_version':2,'boundary':place['geometry'],'grid':dict(grid,transform=list(grid['transform'])),
-                     'terrain':'FABDEM-v1.2','building_source':request['building_source']})
+                     'terrain':'FABDEM-v1.2','building_source':source_key})
     folder=cache_dir/'grids'/key
     with task_lock(folder):
         meta_path=folder/'inputs.json'
@@ -108,14 +113,19 @@ def acquire_inputs(request,cache_dir,proxy=None,log=print):
         geom=transform_geom('EPSG:4326',grid['crs'],place['geometry'])
         mask=rasterize([(geom,1)],out_shape=(grid['height'],grid['width']),transform=grid['transform'],fill=0,dtype='uint8')
         if not mask.any():raise ValueError('行政边界栅格化为空')
+        if local:bld,building_info=on_grid(local['path'],grid,log=log,**request.get('building_options',{}))
         dtm,terrain_info=terrain.acquire(grid['bbox_wgs84'],grid,folder/'terrain-tiles',proxy,log)
         missing=np.count_nonzero((mask==1)&~np.isfinite(dtm))/int(mask.sum())
         if missing>.001:raise RuntimeError(f'FABDEM缺失覆盖了分析区{missing:.2%}，停止计算，保留已完成分片供恢复')
-        bld,building_info=buildings.acquire(grid['bbox_wgs84'],grid,folder/'building-tiles',request['building_source'],proxy,log)
+        if local:pass
+        elif request.get('terrain_only'):
+            bld=np.zeros(dtm.shape,dtype='float32')
+            building_info={'name':'明确选择的纯地形模式','url':'','license':'无建筑输入','warnings':['纯地形场景，不包含建筑遮挡。']}
+        else:bld,building_info=buildings.acquire(grid['bbox_wgs84'],grid,folder/'building-tiles',request['building_source'],proxy,log)
         if np.any((mask==1)&~np.isfinite(bld)):raise RuntimeError('建筑源存在未覆盖的分析区，不能将下载缺口当作无遮挡')
         common=np.isfinite(dtm)&np.isfinite(bld)
         dtm[~common]=np.nan;bld[~common]=np.nan
-        if not np.any((mask==1)&(bld>0)):raise RuntimeError('分析区内建筑高度全为0，取数或范围可能有误')
+        if not request.get('terrain_only') and not np.any((mask==1)&(bld>0)):raise RuntimeError('分析区内建筑高度全为0，取数或范围可能有误')
         save(folder/'dem.tif',dtm,grid,terrain_info)
         save(folder/'buildings.tif',bld,grid,building_info)
         save(folder/'analysis_mask.tif',mask.astype('float32'),grid,{'boundary':place['name']})
@@ -182,6 +192,21 @@ def run_auto(args,log=progress_log):
                  seed=saved.get('seed',42) if args.seed is None else args.seed,threads=args.threads if args.threads is not None else saved.get('threads'),
                  thresholds=args.thresholds if args.thresholds is not None else saved.get('thresholds'),
                  normalization_max=args.normalization_max if args.normalization_max is not None else saved.get('normalization_max'))
+    local_path=getattr(args,'buildings',None)
+    if local_path:request['local_buildings']=source_identity(local_path)
+    elif saved.get('local_buildings'):request['local_buildings']=saved['local_buildings']
+    terrain_only=getattr(args,'terrain_only',False) or saved.get('terrain_only',False)
+    if terrain_only:request['terrain_only']=True
+    if terrain_only and request.get('local_buildings'):raise ValueError('纯地形不能同时使用本地建筑')
+    option_names={'building_layer':'layer','height_field':'height_field','height_unit':'height_unit','floor_height':'floor_height','confirm_building_coverage':'confirm_coverage'}
+    building_options=dict(saved.get('building_options',{}))
+    for arg,key in option_names.items():
+        value=getattr(args,arg,None)
+        if value is not None:building_options[key]=value
+    if building_options and not request.get('local_buildings'):raise ValueError('建筑图层/高度/覆盖选项需要本地--buildings')
+    if request.get('local_buildings'):
+        if getattr(args,'building_source',None):raise ValueError('本地建筑与在线建筑源不能混用')
+        request['building_options']=building_options
     if not 1<=request['rounds']<=10000:raise ValueError('轮数范围为1至10000')
     if not 0<=request['seed']<=2**64-1:raise ValueError('随机种子必须为非负64位整数')
     if request['threads'] is not None and not 1<=request['threads']<=256:raise ValueError('线程数范围为1至256')
@@ -212,6 +237,7 @@ def run_auto(args,log=progress_log):
             shutil_copy(prepared/'boundary.geojson',out/'boundary.geojson')
             cfg={'schema_version':1,'dem':str(prepared/'dem.tif'),'terrain_kind':'DTM','buildings':str(prepared/'buildings.tif'),
                  'analysis_mask':str(prepared/'analysis_mask.tif'),'wind_from':request['wind_from'],'rounds':request['rounds'],'seed':request['seed']}
+            if request.get('terrain_only'):cfg.pop('buildings');cfg['terrain_only']=True
             if request.get('wind_speed_ms') is not None:cfg['wind_speed_ms']=request['wind_speed_ms']
             if request['threads'] is not None:cfg['threads']=request['threads']
             if request['thresholds'] is not None:cfg['thresholds']=request['thresholds']

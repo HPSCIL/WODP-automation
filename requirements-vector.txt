@@ -1,0 +1,3 @@
+# Optional only for local SHP/GPKG/GeoJSON building input; user chooses installation.
+pyogrio==0.13.0
+shapely==2.1.2
